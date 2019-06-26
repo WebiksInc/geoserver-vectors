@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
-import { AcLayerComponent, AcNotification } from 'angular-cesium';
+import { AcEntity, AcLayerComponent, AcNotification } from 'angular-cesium';
 import { from as observableFrom, Observable } from 'rxjs';
 
 @Component({
@@ -15,14 +15,26 @@ export class FeatureLayerComponent implements OnInit {
   @Input()
   features: AcNotification[];
   @Input()
+  polygons: AcNotification[];
+  @Input()
+  lineStrings: AcNotification[];
+  @Input()
+  points: AcNotification[];
+  @Input()
   show: boolean;
 
   features$: Observable<AcNotification | AcNotification[]>;
+  polygons$: Observable<AcNotification | AcNotification[]>;
+  lineStrings$: Observable<AcNotification | AcNotification[]>;
+  points$: Observable<AcNotification | AcNotification[]>;
 
   constructor() {
   }
 
   ngOnInit() {
     this.features$ = observableFrom(this.features);
+    this.polygons$ = observableFrom(this.polygons);
+    this.lineStrings$ = observableFrom(this.lineStrings);
+    this.points$ = observableFrom(this.points);
   }
 }

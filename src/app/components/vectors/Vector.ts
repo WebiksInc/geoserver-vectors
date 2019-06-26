@@ -1,4 +1,3 @@
-import { Observable } from 'rxjs';
 import { AcNotification } from 'angular-cesium';
 
 export class Vector {
@@ -6,6 +5,8 @@ export class Vector {
   name: string;
   workspace: string;
   show: boolean;
-  features: AcNotification[] | any ;
-  // features$?: Observable<any>;
+  features?: AcNotification[] | any;
+  polygons: AcNotification[] | any;
+  lineStrings: AcNotification[] | any;
+  points: AcNotification[] | any;
 }

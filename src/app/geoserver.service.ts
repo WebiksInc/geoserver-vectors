@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { Vector } from './components/vectors/Vector';
 import { HttpClient } from '@angular/common/http';
-import { catchError, map, tap } from 'rxjs/internal/operators';
+import { catchError, map } from 'rxjs/internal/operators';
 import axios from 'axios';
 import { Promise } from 'q';
 
@@ -17,13 +17,21 @@ export class GeoserverService {
   constructor(private http: HttpClient) {
   }
 
-  getVectors(workspace?: string): Observable<any[]> {
+  // getVectors(workspace?: string): Observable<any[]> {
+  //   console.log('start getVectorList service...');
+  //   const url = `${this.baseUrl}/layers?workspace=${workspace}&layerType=VECTOR`;
+  //   return this.http.get<Vector[]>(url).pipe(
+  //     tap(vectors => console.log(`${vectors.length} vectors`)),
+  //     catchError(this.handleError('getVectors', []))
+  //   );
+  // }
+
+  getVectors(workspace?: string): Promise<any> | any {
     console.log('start getVectorList service...');
     const url = `${this.baseUrl}/layers?workspace=${workspace}&layerType=VECTOR`;
-    return this.http.get<Vector[]>(url).pipe(
-      tap(vectors => console.log(`${vectors.length} vectors`)),
-      catchError(this.handleError('getVectors', []))
-    );
+    return axios.get<any[]>(url)
+      .then(vectors => vectors.data)
+      .catch(error => this.handleError('getVectors', []));
   }
 
   // return the Vector's Features as Observables
@@ -39,7 +47,7 @@ export class GeoserverService {
   getVectorFeatures(workspace: string, layer: string): Promise<any> | any {
     const url = `${this.baseUrl}/wfs/${workspace}/${layer}`;
     return axios.get(url)
-      .then(results => results.data.features)
+      .then(features => features.data.features)
       .catch(error => this.handleError('getFeatures', []));
   }
 
