@@ -1,0 +1,13 @@
+<ac-layer acFor="let feature of features$" [context]="this" [show]="true">
+  <ac-polygon-desc props="{
+        hierarchy: feature.hierarchy,
+        material: feature.material,
+        height: feature.height,
+        outline: feature.outline,
+        outlineColor: feature.outlineColor,
+        extrudedHeight: feature.extrudedHeight,
+        perPositionHeight: feature.perPositionHeight,
+        show: feature.show
+    }">
+  </ac-polygon-desc>
+</ac-layer>

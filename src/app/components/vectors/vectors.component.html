@@ -1,0 +1,8 @@
+<ul class="vectors">
+  <li *ngFor="let vector of vectors">
+    <button [title]="vector.id" (click)="showVector(vector)"> {{ vector.id }} </button>
+    <feature-layer *ngIf="vector.show" [features]="features"></feature-layer>
+</ul>
+
+
+

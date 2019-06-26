@@ -1,18 +1,7 @@
-<button (click)="showPolygon=!showPolygon">
-  toggle polygons
-</button>
-
-<button (click)="showPolyline=!showPolyline">
-  toggle polyline
-</button>
-
-<button (click)="showPlane=!showPlane">
-  toggle planes
+<button (click)="showVectors=!showVectors">
+  toggle vectors
 </button>
 
 <ac-map [sceneMode]="sceneMode" id="main-map">
-  <plane-layer *ngIf="showPlane"></plane-layer>
-
-  <polygon-layer *ngIf="showPolygon"></polygon-layer>
-  <polyline-layer *ngIf="showPolyline"></polyline-layer>
+  <vectors *ngIf="showVectors"></vectors>
 </ac-map>

@@ -7,10 +7,8 @@ import { MapsManagerService, ViewerConfiguration } from 'angular-cesium';
   styleUrls: ['./app.component.less']
 })
 export class AppComponent implements AfterViewInit {
-  title = 'angular-cesium-sandcastle';
-  showPolygon = true;
-  showPlane = true;
-  showPolyline = true;
+  showVectors = true;
+
   constructor(public mapManager: MapsManagerService, private viewerConfiguration: ViewerConfiguration) {
     this.viewerConfiguration.viewerOptions = {
       selectionIndicator: false,
@@ -25,13 +23,13 @@ export class AppComponent implements AfterViewInit {
       navigationHelpButton: false,
       sceneModePicker: false,
       navigationInstructionsInitiallyVisible: false,
-      terrainProviderViewModels: [],
-    }
+      terrainProviderViewModels: []
+    };
   }
 
   ngAfterViewInit() {
 
-      // mapManager.getMap().getCesiumViewer().scene.morphTo2D(0);
+    // mapManager.getMap().getCesiumViewer().scene.morphTo2D(0);
 
   }
 }

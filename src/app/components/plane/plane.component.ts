@@ -6,10 +6,10 @@ import { AcEntity, AcLayerComponent, AcNotification, ActionType } from 'angular-
 
 @Component({
   selector: 'plane-layer',
-  templateUrl: 'plane.component.html',
+  templateUrl: 'plane.component.html'
 })
 export class PlaneLayerComponent implements OnInit {
-  @ViewChild(AcLayerComponent, { static: true }) layer: AcLayerComponent;
+  @ViewChild(AcLayerComponent, {static: true}) layer: AcLayerComponent;
 
   planes$: Observable<AcNotification>;
   show = true;
@@ -24,9 +24,9 @@ export class PlaneLayerComponent implements OnInit {
           // image: "/assets/GitHub-Mark-Light.png",
           image: "/assets/fighter-jet.png",
           scale: 0.1,
-          zIndex:  new Cesium.Cartesian3(0, 0, -15000),
+          zIndex: new Cesium.Cartesian3(0, 0, -15000),
           position: Cesium.Cartesian3.fromDegrees(-115.0, 37.0, 50),
-          color: Cesium.Color.RED,
+          color: Cesium.Color.RED
         }),
         actionType: ActionType.ADD_UPDATE
       }

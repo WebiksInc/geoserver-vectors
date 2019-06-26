@@ -20,6 +20,7 @@
     "@angular/platform-browser-dynamic": "~8.0.1",
     "@angular/router": "~8.0.1",
     "angular-cesium": "0.0.56",
+    "axios": "^0.19.0",
     "cesium": "^1.58.1",
     "rxjs": "~6.4.0",
     "tslib": "^1.9.0",
