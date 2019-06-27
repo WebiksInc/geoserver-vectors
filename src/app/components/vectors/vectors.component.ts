@@ -4,7 +4,7 @@ import { Vector } from './Vector';
 import { GeoserverService } from '../../geoserver.service';
 import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
-import { WORKSPACE } from '../../config.json';
+import config from '../../config';
 
 @Component({
   selector: 'vectors',
@@ -27,30 +27,33 @@ export class VectorsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.getVectors(WORKSPACE)
+    this.getVectors(config.WORKSPACE)
       .then(vectors => {
-        vectors.map(vector => {
-          const id = vector.resource.name;
-          console.log(`vector id: ${id}`);
-          const resource = id.split(':');
-          const promise = this.getFeatures(resource[0], resource[1]);
+        if (vectors && vectors.length !== 0) {
+          vectors.map(vector => {
+            const id = vector.resource.name;
+            console.log(`vector id: ${id}`);
+            const resource = id.split(':');
+            const promise = this.getFeatures(resource[0], resource[1]);
 
-          Promise.all<any>(promise.then(features => {
-            this.features = features.map((feature): AcNotification => this.featureToAcNotification(feature));
-            const vectorLayer: Vector = {
-              id,
-              workspace: resource[0],
-              name: resource[1],
-              show: true,
-              features: this.features,
-              polygons: this.polygons,
-              lineStrings: this.lineStrings,
-              points: this.points
-            };
-            this.vectors.push(vectorLayer);
-            this.vectors.map(vector => console.log(`this.vectors: ${vector.id}`));
-          }));
-        });
+            Promise.all<any>(promise.then(features => {
+              this.features = features.map((feature): AcNotification => this.featureToAcNotification(feature));
+              const vectorLayer: Vector = {
+                id,
+                workspace: resource[0],
+                name: resource[1],
+                show: true,
+                features: this.features,
+                polygons: this.polygons,
+                lineStrings: this.lineStrings,
+                points: this.points
+              };
+              this.vectors.push(vectorLayer);
+            }));
+          });
+        } else {
+          console.log('No Vector was found!');
+        }
       });
   }
 
@@ -59,7 +62,7 @@ export class VectorsComponent implements OnInit {
   }
 
   getFeatures(workspace: string, layer: string): Promise<any> {
-    return this.geoserverService.getVectorFeatures(workspace, layer);
+    return this.geoserverService.getWfsFeature(workspace, layer);
   }
 
   private featureToAcNotification(feature: any): AcNotification {
@@ -74,28 +77,34 @@ export class VectorsComponent implements OnInit {
 
   private parseFeature(feature: any, parseFeature: AcNotification): AcEntity {
     const geomType = feature.geometry.type;
-    const coords = feature.geometry.coordinates;
+    let coords = feature.geometry.coordinates;
 
     switch (geomType) {
+      case 'Point':
       case 'MultiPoint':
-        parseFeature.entity = this.parsePoint(coords.flat(1));
+        coords = (geomType === 'Point') ? coords : coords.flat(1);
+        parseFeature.entity = this.parsePoint(coords);
         this.points.push(parseFeature);
         return parseFeature.entity;
+      case 'LineString':
       case 'MultiLineString':
-        parseFeature.entity = this.parseLineString(coords.flat(2));
+        coords = (geomType === 'LineString') ? coords.flat(1) : coords.flat(2);
+        parseFeature.entity = this.parseLineString(coords);
         this.lineStrings.push(parseFeature);
         return parseFeature.entity;
+      case 'Polygon':
       case 'MultiPolygon':
-        parseFeature.entity = this.parsePolygon(coords.flat(3));
+        coords = (geomType === 'Polygon') ? coords.flat(2) : coords.flat(3);
+        parseFeature.entity = this.parsePolygon(coords);
         this.polygons.push(parseFeature);
         return parseFeature.entity;
     }
   }
 
-  private parsePolygon(coord): AcEntity {
+  private parsePolygon(coords): AcEntity {
     return new AcEntity(
       ({
-        hierarchy: Cesium.Cartesian3.fromDegreesArray(coord),
+        hierarchy: Cesium.Cartesian3.fromDegreesArray(coords),
         material: Cesium.Color.ORANGE.withAlpha(0.8),
         height: 0,
         outline: true,
@@ -105,10 +114,10 @@ export class VectorsComponent implements OnInit {
     );
   }
 
-  private parseLineString(coord): AcEntity {
+  private parseLineString(coords): AcEntity {
     return new AcEntity(
       ({
-        positions: Cesium.Cartesian3.fromDegreesArray(coord),
+        positions: Cesium.Cartesian3.fromDegreesArray(coords),
         material: Cesium.Color.GREEN,
         width: 10,
         clampToGround: true,
@@ -118,10 +127,10 @@ export class VectorsComponent implements OnInit {
     );
   }
 
-  private parsePoint(coord): AcEntity {
+  private parsePoint(coords): AcEntity {
     return new AcEntity(
       ({
-        position: Cesium.Cartesian3.fromDegrees(coord[0], coord[1]),
+        position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
         color: Cesium.Color.RED,
         pixelSize: 10,
         outline: true,

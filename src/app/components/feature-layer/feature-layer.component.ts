@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
-import { AcEntity, AcLayerComponent, AcNotification } from 'angular-cesium';
+import { AcLayerComponent, AcNotification } from 'angular-cesium';
 import { from as observableFrom, Observable } from 'rxjs';
 
 @Component({
@@ -28,6 +28,8 @@ export class FeatureLayerComponent implements OnInit {
   lineStrings$: Observable<AcNotification | AcNotification[]>;
   points$: Observable<AcNotification | AcNotification[]>;
 
+  viewer = new Cesium.Viewer('main-map');
+
   constructor() {
   }
 
@@ -36,5 +38,7 @@ export class FeatureLayerComponent implements OnInit {
     this.polygons$ = observableFrom(this.polygons);
     this.lineStrings$ = observableFrom(this.lineStrings);
     this.points$ = observableFrom(this.points);
+
+
   }
 }
