@@ -1,7 +1,7 @@
 let config;
 
 export default config = {
-  WORKSPACE: 'tiger',
+  WORKSPACE: 'vectors',
   baseUrl: 'http://localhost:8080/geoserver',
   // baseUrl: process.env.GEO_SERVER_URL || 'http://localhost:8080/geoserver',
   username: 'admin',
@@ -11,6 +11,8 @@ export default config = {
   wfs: {
     start: '/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=',
     middle: '&srsName=',
-    end: '&count=1000&outputFormat=application/json'
+    end: '&outputFormat=application/json'
   }
 };
+
+// end: '&count=10000&outputFormat=application/json'
