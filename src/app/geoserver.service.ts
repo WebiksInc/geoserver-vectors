@@ -11,8 +11,9 @@ import config from './config';
 
 export class GeoserverService {
 
-  // private baseUrl = 'http://127.0.0.1:10010/v2/api/geoserver';  // URL to web api
   private restUrl = `${config.baseUrl}/rest`;
+
+  private layersByType = [];
 
   private headers = {
     headers: {
@@ -23,20 +24,50 @@ export class GeoserverService {
   constructor(private http: HttpClient) {
   }
 
-  getVectors(workspace?: string): Promise<any[]> | any {
+  getVectors(workspace: string = 'all'): Promise<any[]> | any {
     console.log('start getVectorList service...', workspace);
-    let url: string;
-    if (!workspace) {
-      url = `${this.restUrl}/layers.json`;
-    } else {
-      url = `${this.restUrl}/workspaces/${workspace}/layers.json`;
-    }
-    console.log(`request url: ${url}`);
 
-    return axios.get(url, this.headers)
-      .then((layers: AxiosResponse<any>): any[] | PromiseLike<any[]> =>
-        this.getLayersByType('vector', layers.data.layers.layer))
-      .catch(error => this.handleError('getVectors', []));
+    // 1. get all layers
+    // 2. get vector's layers
+    // 3. get layer's features
+
+    return this.getLayers(workspace)
+      .then(layers => {
+        if (layers.length > 0) {
+          console.log(`found ${layers.length} layers in workspace ${workspace}`);
+          layers.map((layer, index) => console.log(`layer No. ${index + 1}: ${layer.name}`));
+
+          const promise = layers.map(layer => {
+            return this.getVector(layer.href)
+              .then(vector => {
+                if (vector) {
+                  const id = vector.resource.name;
+                  const resource = id.split(':');
+                  vector = {
+                    ...vector,
+                    id,
+                    name: resource[1],
+                    workspace: resource[0]
+                  };
+                  return this.getWfsFeature(resource[0], resource[1])
+                    .then(features => {
+                      console.log(`vector ${vector.name} has ${features.length} features`);
+                      return {
+                        ...vector,
+                        features
+                      };
+                    });
+                }
+              })
+              .catch(error => this.handleError('getVectors', []));
+          });
+
+          return Promise.all(promise);
+
+        } else {
+          return of([]);
+        }
+      });
   }
 
   getWfsFeature(workspace: string, layer: string): Promise<any> | any {
@@ -47,21 +78,31 @@ export class GeoserverService {
       return axios.get(url, this.headers)
         .then((geojson: any): any => geojson.data.features)
         .catch(error => this.handleError('getWfsFeature', []));
-      })
+    })
       .catch(error => this.handleError('getWfsFeature', []));
   }
 
-  private getLayersByType(layerType: string, layers: any[]): Promise<any[]> | any {
-    const layersArray = layers.map(layerItem => {
-      return axios.get(layerItem.href, this.headers)
-        .then((layer: any): any => layer.data.layer)
-        .catch(error => this.handleError('getLayersByType'));
-    });
-    return Promise.all<any[]>(layersArray)
-      .then((layers: any[]): any[] => {
-        const filteredLayers = layers.filter(({type}) => type.toLowerCase() === layerType.toLowerCase());
-        console.log(`${filteredLayers.length} ${layerType} layers was found!`);
-        return filteredLayers;
+  private getLayers(workspace: string): Promise<any> | any {
+    let url: string;
+    if (workspace.toLowerCase() === 'all') {
+      url = `${this.restUrl}/layers.json`;
+    } else {
+      url = `${this.restUrl}/workspaces/${workspace}/layers.json`;
+    }
+    console.log(`request url: ${url}`);
+
+    return axios.get(url, this.headers)
+      .then((layers: AxiosResponse<any>): Promise<any[]> | any => layers.data.layers.layer)
+      .catch(error => this.handleError('getLayers', []));
+  }
+
+  private getVector(url: string): Promise<any> | any {
+    return axios.get(url, this.headers)
+      .then((layer: any): any => {
+        const vector = layer.data.layer;
+        if (vector.type.toLowerCase() === 'vector') {
+          return vector;
+        }
       })
       .catch(error => this.handleError('getLayersByType'));
   }
@@ -90,5 +131,20 @@ export class GeoserverService {
       // Let the app keep running by returning an empty result.
       return of(result as T);
     };
+  }
+
+  private getLayersByType(layerType: string, layers: any[]): Promise<any[]> | any {
+    const promise = layers.map(layerItem => {
+      return axios.get(layerItem.href, this.headers)
+        .then((layer: any): any => {
+          const layerData = layer.data.layer;
+          if (layerData.type.toLowerCase() === layerType.toLowerCase()) {
+            // return layerData;
+            this.layersByType.push(layerData);
+          }
+        })
+        .catch(error => this.handleError('getLayersByType', []));
+    });
+    return Promise.all(promise);
   }
 }

@@ -38,7 +38,5 @@ export class FeatureLayerComponent implements OnInit {
     this.polygons$ = observableFrom(this.polygons);
     this.lineStrings$ = observableFrom(this.lineStrings);
     this.points$ = observableFrom(this.points);
-
-
   }
 }

@@ -18,64 +18,75 @@ export class VectorsComponent implements OnInit {
   show: boolean;
 
   vectors: Vector[] = [];
-  features: AcNotification[] = [];
-  polygons: AcNotification[] = [];
-  lineStrings: AcNotification[] = [];
-  points: AcNotification[] = [];
 
   constructor(private geoserverService: GeoserverService) {
   }
 
   ngOnInit() {
-    this.getVectors(config.WORKSPACE)
-      .then(vectors => {
-        if (vectors && vectors.length !== 0) {
-          vectors.map(vector => {
-            const id = vector.resource.name;
-            console.log(`vector id: ${id}`);
-            const resource = id.split(':');
-            const promise = this.getFeatures(resource[0], resource[1]);
-
-            Promise.all<any>(promise.then(features => {
-              this.features = features.map((feature): AcNotification => this.featureToAcNotification(feature));
-              const vectorLayer: Vector = {
-                id,
-                workspace: resource[0],
-                name: resource[1],
-                show: true,
-                features: this.features,
-                polygons: this.polygons,
-                lineStrings: this.lineStrings,
-                points: this.points
-              };
-              this.vectors.push(vectorLayer);
-            }));
-          });
-        } else {
-          console.log('No Vector was found!');
-        }
-      });
+    if (this.vectors.length === 0) {
+      this.getVectors(config.WORKSPACE)
+        .then(vectors => {
+          if (vectors && vectors.length !== 0) {
+            // console.log(`ngOnInit vectors: ${JSON.stringify(vectors, null, 3)}`);
+            this.vectors = vectors.map(vector => {
+              if (vector.features.length > 0) {
+                vector = {
+                  ...vector,
+                  features: vector.features,
+                  polygons: [],
+                  lineStrings: [],
+                  points: []
+                };
+                vector.features = vector.features.map((feature): AcNotification => this.featureToAcNotification(vector, feature));
+                const parsedVector = this.parseVector(vector);
+                return parsedVector;
+              } else {
+                console.log('this Vector has no features!');
+              }
+            });
+          } else {
+            console.log('No Vector was found!');
+          }
+        });
+    }
   }
 
   getVectors(workspace: string): Promise<any> {
-    return this.geoserverService.getVectors(workspace);
+    return this.geoserverService.getVectors(workspace)
+      .then(vectors => {
+        // console.log(`getVectors vectors: ${JSON.stringify(vectors)}`);
+        return vectors.filter(vector => (vector !== null) && (vector !== undefined));
+      });
   }
 
   getFeatures(workspace: string, layer: string): Promise<any> {
     return this.geoserverService.getWfsFeature(workspace, layer);
   }
 
-  private featureToAcNotification(feature: any): AcNotification {
-    const parseFeature = {
+  private parseVector(vector: any): Vector {
+    return {
+      id: vector.id,
+      workspace: vector.workspace,
+      name: vector.name,
+      show: true,
+      features: vector.features,
+      polygons: vector.polygons,
+      lineStrings: vector.lineStrings,
+      points: vector.points
+    };
+  }
+
+  private featureToAcNotification(vector: any, feature: any): AcNotification {
+    const parsedFeature = {
       id: feature.id,
       actionType: ActionType.ADD_UPDATE,
       entity: {}
     };
-    parseFeature.entity = this.parseFeature(feature, parseFeature);
-    return parseFeature;
+    parsedFeature.entity = this.parseFeature(vector, feature, parsedFeature);
+    return parsedFeature;
   }
 
-  private parseFeature(feature: any, parseFeature: AcNotification): AcEntity {
+  private parseFeature(vector: any, feature: any, parsedFeature: AcNotification): AcEntity {
     const geomType = feature.geometry.type;
     let coords = feature.geometry.coordinates;
 
@@ -83,21 +94,27 @@ export class VectorsComponent implements OnInit {
       case 'Point':
       case 'MultiPoint':
         coords = (geomType === 'Point') ? coords : coords.flat(1);
-        parseFeature.entity = this.parsePoint(coords);
-        this.points.push(parseFeature);
-        return parseFeature.entity;
+        parsedFeature.entity = this.parsePoint(coords);
+        vector.points.push(parsedFeature);
+        return parsedFeature.entity;
       case 'LineString':
       case 'MultiLineString':
+        console.log(`fetaure ${feature.id} coords: ${JSON.stringify(coords)}`);
         coords = (geomType === 'LineString') ? coords.flat(1) : coords.flat(2);
-        parseFeature.entity = this.parseLineString(coords);
-        this.lineStrings.push(parseFeature);
-        return parseFeature.entity;
+        // correct the coordinates if they are composed of XYZ instead of XY point
+        if ((coords.length % 2 !== 0) || (coords[1] === coords[2])) {
+          coords = coords.filter((coord, index) => (index + 1) % 3 !== 0);
+        }
+        console.log(`coords(after): ${JSON.stringify(coords)}`);
+        parsedFeature.entity = this.parseLineString(coords);
+        vector.lineStrings.push(parsedFeature);
+        return parsedFeature.entity;
       case 'Polygon':
       case 'MultiPolygon':
         coords = (geomType === 'Polygon') ? coords.flat(2) : coords.flat(3);
-        parseFeature.entity = this.parsePolygon(coords);
-        this.polygons.push(parseFeature);
-        return parseFeature.entity;
+        parsedFeature.entity = this.parsePolygon(coords);
+        vector.polygons.push(parsedFeature);
+        return parsedFeature.entity;
     }
   }
 
@@ -119,7 +136,8 @@ export class VectorsComponent implements OnInit {
       ({
         positions: Cesium.Cartesian3.fromDegreesArray(coords),
         material: Cesium.Color.GREEN,
-        width: 10,
+        height: 0,
+        width: 5,
         clampToGround: true,
         zIndex: 10,
         show: true
@@ -133,6 +151,7 @@ export class VectorsComponent implements OnInit {
         position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
         color: Cesium.Color.RED,
         pixelSize: 10,
+        height: 0,
         outline: true,
         outlineColor: Cesium.Color.BLACK,
         outlineWidth: 3,
