@@ -54,8 +54,9 @@ export class VectorsComponent implements OnInit {
   getVectors(workspace: string): Promise<any> {
     return this.geoserverService.getVectors(workspace)
       .then(vectors => {
-        // console.log(`getVectors vectors: ${JSON.stringify(vectors)}`);
-        return vectors.filter(vector => (vector !== null) && (vector !== undefined));
+        vectors = vectors.filter(vector => (vector !== null) && (vector !== undefined));
+        console.log(`workspace ${workspace} got ${vectors.length} vectors`);
+        return vectors;
       });
   }
 
@@ -99,13 +100,11 @@ export class VectorsComponent implements OnInit {
         return parsedFeature.entity;
       case 'LineString':
       case 'MultiLineString':
-        console.log(`fetaure ${feature.id} coords: ${JSON.stringify(coords)}`);
         coords = (geomType === 'LineString') ? coords.flat(1) : coords.flat(2);
         // correct the coordinates if they are composed of XYZ instead of XY point
         if ((coords.length % 2 !== 0) || (coords[1] === coords[2])) {
           coords = coords.filter((coord, index) => (index + 1) % 3 !== 0);
         }
-        console.log(`coords(after): ${JSON.stringify(coords)}`);
         parsedFeature.entity = this.parseLineString(coords);
         vector.lineStrings.push(parsedFeature);
         return parsedFeature.entity;

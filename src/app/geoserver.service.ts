@@ -31,43 +31,34 @@ export class GeoserverService {
     // 2. get vector's layers
     // 3. get layer's features
 
-    return this.getLayers(workspace)
-      .then(layers => {
-        if (layers.length > 0) {
-          console.log(`found ${layers.length} layers in workspace ${workspace}`);
-          layers.map((layer, index) => console.log(`layer No. ${index + 1}: ${layer.name}`));
-
-          const promise = layers.map(layer => {
-            return this.getVector(layer.href)
-              .then(vector => {
-                if (vector) {
-                  const id = vector.resource.name;
-                  const resource = id.split(':');
-                  vector = {
-                    ...vector,
-                    id,
-                    name: resource[1],
-                    workspace: resource[0]
-                  };
-                  return this.getWfsFeature(resource[0], resource[1])
-                    .then(features => {
-                      console.log(`vector ${vector.name} has ${features.length} features`);
-                      return {
-                        ...vector,
-                        features
-                      };
-                    });
-                }
-              })
-              .catch(error => this.handleError('getVectors', []));
+    const geoserverLayers = this.getLayers(workspace);
+    return geoserverLayers.then(layers => {
+      console.log(`workspace ${workspace} got ${layers.length} layers`);
+      if (layers.length > 0) {
+        const promise = layers.map(layer => {
+          const vectorLayer = this.getVector(layer.href);
+          return vectorLayer.then(vector => {
+            if (vector) {
+              const vectorFeatures = this.getWfsFeature(vector.workspace, vector.name);
+              return vectorFeatures.then(features => {
+                console.log(`vector ${vector.name} has ${features.length} features`);
+                return {
+                  ...vector,
+                  features
+                };
+              });
+            }
           });
+        });
 
-          return Promise.all(promise);
+        return Promise.all(promise);
 
-        } else {
-          return of([]);
-        }
-      });
+      } else {
+        console.log(`there are no Layers!`);
+        return of([]);
+      }
+    })
+      .catch(error => this.handleError('getVectors', []));
   }
 
   getWfsFeature(workspace: string, layer: string): Promise<any> | any {
@@ -101,7 +92,14 @@ export class GeoserverService {
       .then((layer: any): any => {
         const vector = layer.data.layer;
         if (vector.type.toLowerCase() === 'vector') {
-          return vector;
+          const id = vector.resource.name;
+          const resource = id.split(':');
+          return {
+            ...vector,
+            id,
+            name: resource[1],
+            workspace: resource[0]
+          };
         }
       })
       .catch(error => this.handleError('getLayersByType'));
@@ -131,20 +129,5 @@ export class GeoserverService {
       // Let the app keep running by returning an empty result.
       return of(result as T);
     };
-  }
-
-  private getLayersByType(layerType: string, layers: any[]): Promise<any[]> | any {
-    const promise = layers.map(layerItem => {
-      return axios.get(layerItem.href, this.headers)
-        .then((layer: any): any => {
-          const layerData = layer.data.layer;
-          if (layerData.type.toLowerCase() === layerType.toLowerCase()) {
-            // return layerData;
-            this.layersByType.push(layerData);
-          }
-        })
-        .catch(error => this.handleError('getLayersByType', []));
-    });
-    return Promise.all(promise);
   }
 }
