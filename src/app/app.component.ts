@@ -1,4 +1,4 @@
-import { AfterViewInit, Component } from '@angular/core';
+import { AfterViewInit, Component, Input } from '@angular/core';
 import { MapsManagerService, ViewerConfiguration } from 'angular-cesium';
 
 @Component({
@@ -7,7 +7,11 @@ import { MapsManagerService, ViewerConfiguration } from 'angular-cesium';
   styleUrls: ['./app.component.less']
 })
 export class AppComponent implements AfterViewInit {
+
   showVectors = true;
+
+  @Input()
+  title = 'hide';
 
   constructor(public mapManager: MapsManagerService, private viewerConfiguration: ViewerConfiguration) {
     this.viewerConfiguration.viewerOptions = {
@@ -25,6 +29,11 @@ export class AppComponent implements AfterViewInit {
       navigationInstructionsInitiallyVisible: false,
       terrainProviderViewModels: []
     };
+  }
+
+  displayLayers() {
+    this.title = this.showVectors ? 'show' : 'hide';
+    this.showVectors = !this.showVectors;
   }
 
   ngAfterViewInit() {

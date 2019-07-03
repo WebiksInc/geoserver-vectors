@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
 import axios, { AxiosResponse } from 'axios';
 import { all, Promise } from 'q';
 import config from './config';
@@ -20,6 +20,14 @@ export class GeoserverService {
   };
 
   constructor(private http: HttpClient) {
+  }
+
+  getWorkspaces(): Promise<string[]> | any {
+    const url = `${this.restUrl}/workspaces.json`;
+    console.log(`start getWorkspaces...${url}`);
+    return axios.get(url, this.headers)
+      .then(results => results.data.workspaces.workspace.map(({ name }) => name))
+      .catch(error => this.handleError('getWorkspaces', []));
   }
 
   getVectors(workspace: string = 'all'): Promise<any[]> | any {
@@ -54,11 +62,11 @@ export class GeoserverService {
         return all(promise);
 
       } else {
-        console.log(`there are no Layers!`);
+        console.log(`workspace ${workspace} has no Layers!`);
         return of([]);
       }
     })
-      .catch(error => this.handleError('getVectors', []));
+    .catch(error => this.handleError('getVectors', []));
   }
 
   getWfsFeature(workspace: string, layer: string): Promise<any> | any {
@@ -76,7 +84,7 @@ export class GeoserverService {
           }))
         .catch(error => this.handleError('getWfsFeature', []));
     })
-      .catch(error => this.handleError('getWfsFeature', []));
+    .catch(error => this.handleError('getWfsFeature', []));
   }
 
   private getLayers(workspace: string): Promise<any> | any {
@@ -89,7 +97,14 @@ export class GeoserverService {
     console.log(`request url: ${url}`);
 
     return axios.get(url, this.headers)
-      .then((layers: AxiosResponse<any>): Promise<any[]> | any => layers.data.layers.layer)
+      .then((results: AxiosResponse<any>): Promise<any[]> | any => {
+        const layers = results.data.layers.layer;
+        if (layers) {
+          return layers;
+        } else {
+          return [];
+        }
+      })
       .catch(error => this.handleError('getLayers', []));
   }
 

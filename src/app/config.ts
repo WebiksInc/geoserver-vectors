@@ -1,7 +1,7 @@
 let config;
 
 export default config = {
-  WORKSPACE: 'vectors',
+  defaultWorkspace: 'tiger',
   baseUrl: 'http://localhost:8080/geoserver',
   // baseUrl: process.env.GEO_SERVER_URL || 'http://localhost:8080/geoserver',
   username: 'admin',
