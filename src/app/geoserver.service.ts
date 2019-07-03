@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import axios, { AxiosResponse } from 'axios';
-import { Promise } from 'q';
+import { all, Promise } from 'q';
 import config from './config';
 
 @Injectable({
@@ -12,8 +12,6 @@ import config from './config';
 export class GeoserverService {
 
   private restUrl = `${config.baseUrl}/rest`;
-
-  private layersByType = [];
 
   private headers = {
     headers: {
@@ -40,10 +38,12 @@ export class GeoserverService {
           return vectorLayer.then(vector => {
             if (vector) {
               const vectorFeatures = this.getWfsFeature(vector.workspace, vector.name);
-              return vectorFeatures.then(features => {
+              return vectorFeatures.then(({ features, srs, nativeCrs }) => {
                 console.log(`vector ${vector.name} has ${features.length} features`);
                 return {
                   ...vector,
+                  srs,
+                  nativeCrs,
                   features
                 };
               });
@@ -51,7 +51,7 @@ export class GeoserverService {
           });
         });
 
-        return Promise.all(promise);
+        return all(promise);
 
       } else {
         console.log(`there are no Layers!`);
@@ -63,11 +63,17 @@ export class GeoserverService {
 
   getWfsFeature(workspace: string, layer: string): Promise<any> | any {
     const layerDetails = this.getLayerById(workspace, layer);
-    return layerDetails.then(({featureType}) => {
+    return layerDetails.then(({ featureType }) => {
       const url = `${config.baseUrl}${config.wfs.start}${workspace}:${layer}${config.wfs.middle}${featureType.srs}${config.wfs.end}`;
+      const nativeCrs = featureType.nativeCRS['$'];
       console.log(url);
       return axios.get(url, this.headers)
-        .then((geojson: any): any => geojson.data.features)
+        .then((geojson: any): any =>
+          ({
+            features: geojson.data.features,
+            srs: featureType.srs,
+            nativeCrs
+          }))
         .catch(error => this.handleError('getWfsFeature', []));
     })
       .catch(error => this.handleError('getWfsFeature', []));

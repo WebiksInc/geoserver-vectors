@@ -1,10 +1,13 @@
 import { Component, Input, OnInit } from '@angular/core';
-
-import { Vector } from './Vector';
-import { GeoserverService } from '../../geoserver.service';
 import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
+import proj4 from 'proj4';
+
+import { IVector } from './IVector';
+import { GeoserverService } from '../../geoserver.service';
 import config from '../../config';
+
+export type IPoint = [number, number];
 
 @Component({
   selector: 'vectors',
@@ -17,7 +20,9 @@ export class VectorsComponent implements OnInit {
   @Input()
   show: boolean;
 
-  vectors: Vector[] = [];
+  vectors: IVector[] = [];
+
+  lonLatProj = 'EPSG:4326';
 
   constructor(private geoserverService: GeoserverService) {
   }
@@ -32,6 +37,7 @@ export class VectorsComponent implements OnInit {
               if (vector.features.length > 0) {
                 vector = {
                   ...vector,
+                  show: true,
                   features: vector.features,
                   polygons: [],
                   lineStrings: [],
@@ -41,7 +47,15 @@ export class VectorsComponent implements OnInit {
                 const parsedVector = this.parseVector(vector);
                 return parsedVector;
               } else {
-                console.log('this Vector has no features!');
+                console.log(`vector ${vector.name} has no features!`);
+                return {
+                  ...vector,
+                  show: false,
+                  features: [],
+                  polygons: [],
+                  lineStrings: [],
+                  points: []
+                };
               }
             });
           } else {
@@ -60,16 +74,14 @@ export class VectorsComponent implements OnInit {
       });
   }
 
-  getFeatures(workspace: string, layer: string): Promise<any> {
-    return this.geoserverService.getWfsFeature(workspace, layer);
-  }
-
-  private parseVector(vector: any): Vector {
+  private parseVector(vector: any): IVector {
     return {
       id: vector.id,
       workspace: vector.workspace,
       name: vector.name,
-      show: true,
+      srs: vector.srs,
+      nativeCrs: vector.nativeCrs,
+      show: vector.show,
       features: vector.features,
       polygons: vector.polygons,
       lineStrings: vector.lineStrings,
@@ -90,27 +102,42 @@ export class VectorsComponent implements OnInit {
   private parseFeature(vector: any, feature: any, parsedFeature: AcNotification): AcEntity {
     const geomType = feature.geometry.type;
     let coords = feature.geometry.coordinates;
+    const proj = vector.nativeCrs;
+    const trans = vector.srs !== this.lonLatProj;
 
     switch (geomType) {
       case 'Point':
       case 'MultiPoint':
         coords = (geomType === 'Point') ? coords : coords.flat(1);
+        if (trans) {
+          coords = this.getLonLatPoint(coords, proj);
+        }
         parsedFeature.entity = this.parsePoint(coords);
         vector.points.push(parsedFeature);
         return parsedFeature.entity;
       case 'LineString':
       case 'MultiLineString':
-        coords = (geomType === 'LineString') ? coords.flat(1) : coords.flat(2);
+        coords = (geomType === 'LineString') ? coords : coords.flat(1);
         // correct the coordinates if they are composed of XYZ instead of XY point
-        if ((coords.length % 2 !== 0) || (coords[1] === coords[2])) {
-          coords = coords.filter((coord, index) => (index + 1) % 3 !== 0);
+        if (coords[0].length > 2) {
+          coords = coords.map(point => point.slice(0, 2));
         }
+        if (trans) {
+          coords = this.getLonLatCoords(coords, proj);
+        }
+        coords = coords.flat(1);
         parsedFeature.entity = this.parseLineString(coords);
         vector.lineStrings.push(parsedFeature);
         return parsedFeature.entity;
       case 'Polygon':
       case 'MultiPolygon':
-        coords = (geomType === 'Polygon') ? coords.flat(2) : coords.flat(3);
+        if (trans) {
+          coords = (geomType === 'Polygon') ? coords.flat(1) : coords.flat(2);
+          coords = this.getLonLatCoords(coords, proj);
+          coords = coords.flat(1);
+        } else {
+          coords = (geomType === 'LineString') ? coords.flat(2) : coords.flat(3);
+        }
         parsedFeature.entity = this.parsePolygon(coords);
         vector.polygons.push(parsedFeature);
         return parsedFeature.entity;
@@ -118,6 +145,7 @@ export class VectorsComponent implements OnInit {
   }
 
   private parsePolygon(coords): AcEntity {
+    // console.log(`parsePolygon coords: ${JSON.stringify(coords)}`);
     return new AcEntity(
       ({
         hierarchy: Cesium.Cartesian3.fromDegreesArray(coords),
@@ -131,6 +159,7 @@ export class VectorsComponent implements OnInit {
   }
 
   private parseLineString(coords): AcEntity {
+    // console.log(`parseLineString coords(after): ${JSON.stringify(coords)}`);
     return new AcEntity(
       ({
         positions: Cesium.Cartesian3.fromDegreesArray(coords),
@@ -145,6 +174,7 @@ export class VectorsComponent implements OnInit {
   }
 
   private parsePoint(coords): AcEntity {
+    // console.log(`parsePoint coords: ${JSON.stringify(coords)}`);
     return new AcEntity(
       ({
         position: Cesium.Cartesian3.fromDegrees(coords[0], coords[1]),
@@ -160,8 +190,25 @@ export class VectorsComponent implements OnInit {
     );
   }
 
-  showVector(vector: Vector) {
-    vector.show = !vector.show;
+  getFeatureSrs(crs: string) {
+    return crs.substring(crs.lastIndexOf(':'));
+  }
+
+  getLonLatCoords(coords: IPoint[], proj: string): IPoint[] {
+    return coords.map(point => this.getLonLatPoint(point, proj));
+  }
+
+  getLonLatPoint(point: IPoint, proj: string): IPoint {
+    return proj4(proj, this.lonLatProj, point);
+  }
+
+  showVector(vector: IVector) {
+    if (vector.features.length === 0) {
+      vector.show = false;
+      console.log(`vector ${vector.name} has no features!`);
+    } else {
+      vector.show = !vector.show;
+    }
   }
 }
 
