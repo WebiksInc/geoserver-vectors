@@ -1,9 +1,11 @@
 import { AcNotification } from 'angular-cesium';
 
-export class Vector {
+export interface IVector {
   id: string;
   name: string;
   workspace: string;
+  srs: string;
+  nativeCrs: string;
   show: boolean;
   features?: AcNotification[] | any;
   polygons: AcNotification[] | any;
