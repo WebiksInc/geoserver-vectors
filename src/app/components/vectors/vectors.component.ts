@@ -105,8 +105,7 @@ export class VectorsComponent implements OnInit {
 
   getWorkspaces(): Promise<string[]> {
     return this.geoserverService.getWorkspaces().then(workspaces => {
-      console.log(`workspaces: ${JSON.stringify(workspaces)}`);
-      this.workspaces = workspaces;
+      this.workspaces = workspaces.filter(workspace => workspace);
     });
   }
 

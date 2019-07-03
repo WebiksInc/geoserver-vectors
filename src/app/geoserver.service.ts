@@ -23,10 +23,18 @@ export class GeoserverService {
   }
 
   getWorkspaces(): Promise<string[]> | any {
+
+    // 1. get all workspaces
+    // 2. check each workspaces has dataStores (vector layers)
+    // 3. return a list of workspaces names which has vector layers
+
     const url = `${this.restUrl}/workspaces.json`;
     console.log(`start getWorkspaces...${url}`);
     return axios.get(url, this.headers)
-      .then(results => results.data.workspaces.workspace.map(({ name }) => name))
+      .then(results => {
+        const workspaces: Promise<string[]> | any = results.data.workspaces.workspace.map(workspace => this.getWorkspacesWithVectors(workspace));
+        return all(workspaces);
+      })
       .catch(error => this.handleError('getWorkspaces', []));
   }
 
@@ -85,6 +93,19 @@ export class GeoserverService {
         .catch(error => this.handleError('getWfsFeature', []));
     })
     .catch(error => this.handleError('getWfsFeature', []));
+  }
+
+  private getWorkspacesWithVectors(workspace: any): Promise<string> | any {
+    return axios.get(workspace.href, this.headers)
+      .then((result) => {
+        return axios.get(result.data.workspace.dataStores, this.headers)
+          .then((dataStores: any): string => {
+            if (dataStores.data.dataStores) {
+              return workspace.name;
+            }
+          });
+      })
+      .catch(error => this.handleError('getWorkspacesWithVectors'));
   }
 
   private getLayers(workspace: string): Promise<any> | any {
