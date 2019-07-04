@@ -31,8 +31,8 @@ export class GeoserverService {
     const url = `${this.restUrl}/workspaces.json`;
     console.log(`start getWorkspaces...${url}`);
     return axios.get(url, this.headers)
-      .then(results => {
-        const workspaces: Promise<string[]> | any = results.data.workspaces.workspace.map(workspace => this.getWorkspacesWithVectors(workspace));
+      .then((results): Promise<string[]> | any => {
+        const workspaces: Promise<string[]> | any = results.data.workspaces.workspace.map(({ name }) => this.getWorkspacesWithVectors(name));
         return all(workspaces);
       })
       .catch(error => this.handleError('getWorkspaces', []));
@@ -54,7 +54,7 @@ export class GeoserverService {
           return vectorLayer.then(vector => {
             if (vector) {
               const vectorFeatures = this.getWfsFeature(vector.workspace, vector.name);
-              return vectorFeatures.then(({ features, srs, nativeCrs }) => {
+              return vectorFeatures.then(({features, srs, nativeCrs}) => {
                 console.log(`vector ${vector.name} has ${features.length} features`);
                 return {
                   ...vector,
@@ -74,7 +74,7 @@ export class GeoserverService {
         return of([]);
       }
     })
-    .catch(error => this.handleError('getVectors', []));
+      .catch(error => this.handleError('getVectors', []));
   }
 
   getWfsFeature(workspace: string, layer: string): Promise<any> | any {
@@ -95,15 +95,13 @@ export class GeoserverService {
     .catch(error => this.handleError('getWfsFeature', []));
   }
 
-  private getWorkspacesWithVectors(workspace: any): Promise<string> | any {
-    return axios.get(workspace.href, this.headers)
-      .then((result) => {
-        return axios.get(result.data.workspace.dataStores, this.headers)
-          .then((dataStores: any): string => {
-            if (dataStores.data.dataStores) {
-              return workspace.name;
-            }
-          });
+  private getWorkspacesWithVectors(workspace: string): Promise<string> | any {
+    const url = `${this.restUrl}/workspaces/${workspace}/datastores.json`;
+    return axios.get(url, this.headers)
+      .then((dataStores: any): string => {
+        if (dataStores.data.dataStores) {
+          return workspace;
+        }
       })
       .catch(error => this.handleError('getWorkspacesWithVectors'));
   }
