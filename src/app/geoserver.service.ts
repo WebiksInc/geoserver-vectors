@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import axios, { AxiosResponse } from 'axios';
-import { all, Promise } from 'q';
+import { all, Promise, resolve } from 'q';
+import { IHref, IVector, IWorkspace } from './types';
 import config from './config';
+
 
 @Injectable({
   providedIn: 'root'
@@ -22,109 +23,108 @@ export class GeoserverService {
   constructor(private http: HttpClient) {
   }
 
-  getVectors(workspace: string = 'all'): Promise<any[]> | any {
-    console.log('start getVectorList service...', workspace);
+  getWorkspaces(): any {
 
-    // 1. get all layers
-    // 2. get vector's layers
-    // 3. get layer's features
+    // 1. get all workspaces
+    // 2. check each workspaces has dataStores (vector layers)
+    // 3. return a list of workspaces names which has vector layers
 
-    const geoserverLayers = this.getLayers(workspace);
-    return geoserverLayers.then(layers => {
-      console.log(`workspace ${workspace} got ${layers.length} layers`);
-      if (layers.length > 0) {
-        const promise = layers.map(layer => {
-          const vectorLayer = this.getVector(layer.href);
-          return vectorLayer.then(vector => {
-            if (vector) {
-              const vectorFeatures = this.getWfsFeature(vector.workspace, vector.name);
-              return vectorFeatures.then(({ features, srs, nativeCrs }) => {
-                console.log(`vector ${vector.name} has ${features.length} features`);
-                return {
-                  ...vector,
-                  srs,
-                  nativeCrs,
-                  features
-                };
-              });
-            }
-          });
-        });
-
-        return all(promise);
-
-      } else {
-        console.log(`there are no Layers!`);
-        return of([]);
-      }
-    })
-      .catch(error => this.handleError('getVectors', []));
-  }
-
-  getWfsFeature(workspace: string, layer: string): Promise<any> | any {
-    const layerDetails = this.getLayerById(workspace, layer);
-    return layerDetails.then(({ featureType }) => {
-      const url = `${config.baseUrl}${config.wfs.start}${workspace}:${layer}${config.wfs.middle}${featureType.srs}${config.wfs.end}`;
-      const nativeCrs = featureType.nativeCRS['$'];
-      console.log(url);
-      return axios.get(url, this.headers)
-        .then((geojson: any): any =>
-          ({
-            features: geojson.data.features,
-            srs: featureType.srs,
-            nativeCrs
-          }))
-        .catch(error => this.handleError('getWfsFeature', []));
-    })
-      .catch(error => this.handleError('getWfsFeature', []));
-  }
-
-  private getLayers(workspace: string): Promise<any> | any {
-    let url: string;
-    if (workspace.toLowerCase() === 'all') {
-      url = `${this.restUrl}/layers.json`;
-    } else {
-      url = `${this.restUrl}/workspaces/${workspace}/layers.json`;
-    }
-    console.log(`request url: ${url}`);
-
+    const url = `${this.restUrl}/workspaces.json`;
+    console.log(`start getWorkspaces...${url}`);
     return axios.get(url, this.headers)
-      .then((layers: AxiosResponse<any>): Promise<any[]> | any => layers.data.layers.layer)
-      .catch(error => this.handleError('getLayers', []));
+      .then((results): any => {
+        const workspaces: any = results.data.workspaces.workspace.map(({ name }: Promise<IWorkspace> | any) => this.getWorkspacesWithVectors(name));
+        return all(workspaces);
+      })
+      .catch(error => this.handleError('getWorkspaces', []));
   }
 
-  private getVector(url: string): Promise<any> | any {
+  getVectors(workspace: IWorkspace): any {
+    console.log('start getVectors...', workspace.name);
+
+    // 1. all the workspaces already has the dataStores
+    // 2. get featureTypes for each dataStore (the vector's layers of the store)
+    // 3. get each layer details (id, srs, nativeCRS)
+    // 4. get each layer features (WFS)
+
+    const datastores: IHref[] = workspace.datastores;
+    const promise = datastores.map(({ href }) => this.getFeatureTypes(workspace.name, href));
+    return all(promise);
+  }
+
+  private getWorkspacesWithVectors(workspaceName: string): any {
+    return this.getDatastores(workspaceName);
+  }
+
+  private getDatastores(workspace: string): any {
+    const url = `${this.restUrl}/workspaces/${workspace}/datastores.json`;
     return axios.get(url, this.headers)
-      .then((layer: any): any => {
-        const vector = layer.data.layer;
-        if (vector.type.toLowerCase() === 'vector') {
-          const id = vector.resource.name;
-          const resource = id.split(':');
+      .then((results: AxiosResponse<any>): any => {
+        let datastores = results.data.dataStores;
+        if (datastores) {
+          datastores = datastores.dataStore;
           return {
-            ...vector,
-            id,
-            name: resource[1],
-            workspace: resource[0]
+            name: workspace,
+            datastores
           };
         }
+      })
+      .catch(error => this.handleError('getDatastores'));
+  }
+
+  private getFeatureTypes(workspace: string, url: string): any {
+    return axios.get(url, this.headers)
+      .then((results: AxiosResponse<any>): any[] => {
+        const datastore = results.data.dataStore.featureTypes;
+        const feautreTypes: any = this.getFeatureType(datastore);
+        return feautreTypes.then(vectors => {
+          vectors = vectors.map(vector => this.getVector(workspace, vector.href));
+          return all(vectors);
+        });
+      })
+      .catch(error => this.handleError('getDatastores', []));
+  }
+
+  private getFeatureType(url: string): any {
+    return axios.get(url, this.headers)
+      .then((results: AxiosResponse<any>): any[] => results.data.featureTypes.featureType)
+      .catch(error => this.handleError('getLayersByType', []));
+  }
+
+  private getVector(workspace: string, url: string): any {
+
+    // 1. get vector's details (id, srs, nativeCRS)
+    // 2. get vector's features (WFS)
+
+    return axios.get(url, this.headers)
+      .then((results: AxiosResponse<any>): any => {
+        const vector = results.data.featureType;
+        const id = `${workspace}:${vector.name}`;
+        // get the vector's features by WFS requset
+        const vectorFeatures: any = this.getWfsFeature(id, vector.srs);
+        return vectorFeatures.then((features): IVector =>
+          ({
+            id,
+            workspace,
+            name: vector.name,
+            srs: vector.srs,
+            nativeCrs: vector.nativeCRS['$'],
+            features
+          })
+        );
       })
       .catch(error => this.handleError('getLayersByType'));
   }
 
-  private getLayerById(workspace: string, layer: string): Promise<any> | any {
-    const url = `${this.restUrl}/workspaces/${workspace}/layers/${layer}.json`;
+  private getWfsFeature(id: string, srs: string): any {
+    const url = `${config.baseUrl}${config.wfs.start}${id}${config.wfs.middle}${srs}${config.wfs.end}`;
     return axios.get(url, this.headers)
-      .then((layer: any): any => {
-        const detailUrl = layer.data.layer.resource.href;
-        return axios.get(detailUrl, this.headers)
-          .then((layerDetails: any): any => layerDetails.data)
-          .catch(error => this.handleError('getLayerById'));
-      })
-      .catch(error => this.handleError('getLayerById'));
+      .then((geojson: AxiosResponse<any>): any => geojson.data.features)
+      .catch(error => this.handleError('getWfsFeature', []));
   }
 
   private handleError<T>(operation = 'operation', result?: T) {
-    return (error: any): Observable<T> => {
+    return (error: any): Promise<T> => {
 
       // TODO: send the error to remote logging infrastructure
       console.error(error); // log to console instead
@@ -133,7 +133,7 @@ export class GeoserverService {
       console.warn(`${operation} failed: ${error.message}`);
 
       // Let the app keep running by returning an empty result.
-      return of(result as T);
+      return resolve(result);
     };
   }
 }

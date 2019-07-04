@@ -1,13 +1,12 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { FormBuilder, Validators } from "@angular/forms";
 import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
 import proj4 from 'proj4';
 
-import { IVector } from './IVector';
+import { IVector, IWorkspace, IHref, IPoint} from '../../types';
 import { GeoserverService } from '../../geoserver.service';
-import config from '../../config';
-
-export type IPoint = [number, number];
+import { isArray } from 'util';
 
 @Component({
   selector: 'vectors',
@@ -16,61 +15,114 @@ export type IPoint = [number, number];
 })
 
 export class VectorsComponent implements OnInit {
+  isSubmitted = false;
 
   @Input()
   show: boolean;
+
+  workspaces: IWorkspace[];
+
+  selecedWorkspace: string;
 
   vectors: IVector[] = [];
 
   lonLatProj = 'EPSG:4326';
 
-  constructor(private geoserverService: GeoserverService) {
+  constructor(private geoserverService: GeoserverService,
+              public fb: FormBuilder) {
   }
 
-  ngOnInit() {
-    if (this.vectors.length === 0) {
-      this.getVectors(config.WORKSPACE)
-        .then(vectors => {
-          if (vectors && vectors.length !== 0) {
-            // console.log(`ngOnInit vectors: ${JSON.stringify(vectors, null, 3)}`);
-            this.vectors = vectors.map(vector => {
-              if (vector.features.length > 0) {
-                vector = {
-                  ...vector,
-                  show: true,
-                  features: vector.features,
-                  polygons: [],
-                  lineStrings: [],
-                  points: []
-                };
-                vector.features = vector.features.map((feature): AcNotification => this.featureToAcNotification(vector, feature));
-                const parsedVector = this.parseVector(vector);
-                return parsedVector;
-              } else {
-                console.log(`vector ${vector.name} has no features!`);
-                return {
-                  ...vector,
-                  show: false,
-                  features: [],
-                  polygons: [],
-                  lineStrings: [],
-                  points: []
-                };
-              }
-            });
-          } else {
-            console.log('No Vector was found!');
-          }
-        });
+  // Form
+  registrationForm = this.fb.group({
+    workspaceName: ['', [Validators.required]]
+  });
+
+  // Choose city using select dropdown
+  changeWorkspace(e) {
+    this.workspaceName.setValue(e.target.value, {
+      onlySelf: true
+    });
+    this.onSubmit();
+  }
+
+  // Getter method to access form controls
+  get workspaceName() {
+    return this.registrationForm.get('workspaceName');
+  }
+
+  onSubmit() {
+    this.isSubmitted = true;
+    if (!this.registrationForm.valid) {
+      return false;
+    } else {
+      this.selecedWorkspace = this.registrationForm.value.workspaceName;
+      const workspace: IWorkspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
+      this.start(workspace);
     }
   }
 
-  getVectors(workspace: string): Promise<any> {
+  ngOnInit() {
+    this.getWorkspaces();
+  }
+
+  start(workspace: IWorkspace) {
+    console.log(`start START...${workspace.name}`);
+    this.getVectors(workspace)
+      .then(vectors => {
+        if (vectors && vectors.length !== 0) {
+          // console.log(`start vectors: ${JSON.stringify(vectors)}`);
+          this.vectors = vectors.map(vector => {
+            console.log(`vector ${vector.name} has ${vector.features.length} features`);
+            if (vector.features.length > 0) {
+              vector = {
+                ...vector,
+                show: true,
+                features: vector.features,
+                polygons: [],
+                lineStrings: [],
+                points: []
+              };
+              vector.features = vector.features.map((feature): AcNotification => this.featureToAcNotification(vector, feature));
+              return this.parseVector(vector);
+            } else {
+              console.log(`vector ${vector.name} has no features!`);
+              return {
+                ...vector,
+                show: false,
+                features: [],
+                polygons: [],
+                lineStrings: [],
+                points: []
+              };
+            }
+          });
+        } else {
+          console.log('No Vector was found!');
+        }
+      });
+  }
+
+  getWorkspaces() {
+    const getWorkspaces: any = this.geoserverService.getWorkspaces();
+    getWorkspaces.then((workspaces: IWorkspace[]) => {
+      this.workspaces = workspaces.filter(workspace => workspace);
+    });
+  }
+
+  getVectors(workspace: IWorkspace): Promise<any> {
     return this.geoserverService.getVectors(workspace)
       .then(vectors => {
-        vectors = vectors.filter(vector => (vector !== null) && (vector !== undefined));
-        console.log(`workspace ${workspace} got ${vectors.length} vectors`);
-        return vectors;
+        if (vectors.length > 0) {
+          if (isArray(vectors[0])) {
+            vectors = vectors.flat(1);
+          }
+          vectors = vectors.filter(vector => (vector !== null) && (vector !== undefined));
+          console.log(`workspace ${workspace.name} got ${vectors.length} vectors`);
+          return vectors;
+        } else {
+          console.log(`workspace ${workspace.name} has no Layers!`);
+          return [];
+        }
       });
   }
 
@@ -136,7 +188,7 @@ export class VectorsComponent implements OnInit {
           coords = this.getLonLatCoords(coords, proj);
           coords = coords.flat(1);
         } else {
-          coords = (geomType === 'LineString') ? coords.flat(2) : coords.flat(3);
+          coords = (geomType === 'Polygon') ? coords.flat(2) : coords.flat(3);
         }
         parsedFeature.entity = this.parsePolygon(coords);
         vector.polygons.push(parsedFeature);

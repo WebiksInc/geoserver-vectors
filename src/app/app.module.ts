@@ -1,5 +1,6 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import { AppComponent } from './app.component';
 import { AngularCesiumModule, ViewerConfiguration } from 'angular-cesium';
@@ -17,6 +18,8 @@ import { HttpClientModule } from '@angular/common/http';
   imports: [
     HttpClientModule,
     BrowserModule,
+    FormsModule,
+    ReactiveFormsModule,
     AngularCesiumModule.forRoot()
   ],
   providers: [ViewerConfiguration, GeoserverService],
