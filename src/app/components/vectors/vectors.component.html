@@ -2,7 +2,7 @@
   <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()">
     <select class="custom-select" (change)="changeWorkspace($event)" formControlName="workspaceName">
       <option value="">Choose your workspace</option>
-      <option *ngFor="let workspace of workspaces" [ngValue]="workspace">{{workspace}}</option>
+      <option *ngFor="let workspace of workspaces" [ngValue]="workspace.name">{{workspace.name}}</option>
     </select>
 
     <!-- error block -->

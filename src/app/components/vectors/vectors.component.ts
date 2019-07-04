@@ -4,10 +4,9 @@ import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
 import proj4 from 'proj4';
 
-import { IVector } from './IVector';
+import { IVector, IWorkspace, IHref, IPoint} from '../../types';
 import { GeoserverService } from '../../geoserver.service';
-
-export type IPoint = [number, number];
+import { isArray } from 'util';
 
 @Component({
   selector: 'vectors',
@@ -21,9 +20,9 @@ export class VectorsComponent implements OnInit {
   @Input()
   show: boolean;
 
-  workspaces: string[];
+  workspaces: IWorkspace[];
 
-  workspace: string;
+  selecedWorkspace: string;
 
   vectors: IVector[] = [];
 
@@ -40,14 +39,13 @@ export class VectorsComponent implements OnInit {
 
   // Choose city using select dropdown
   changeWorkspace(e) {
-    console.log(e.target.value);
     this.workspaceName.setValue(e.target.value, {
       onlySelf: true
     });
     this.onSubmit();
   }
 
-  // Getter method to access formcontrols
+  // Getter method to access form controls
   get workspaceName() {
     return this.registrationForm.get('workspaceName');
   }
@@ -57,10 +55,13 @@ export class VectorsComponent implements OnInit {
     if (!this.registrationForm.valid) {
       return false;
     } else {
-      console.log(`registrationForm.value: ${JSON.stringify(this.registrationForm.value)}`);
-      this.workspace = this.registrationForm.value.workspaceName;
-      console.log(`this.workspace: ${this.workspace}`);
-      this.start(this.workspace);
+      this.selecedWorkspace = this.registrationForm.value.workspaceName;
+      const workspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
+      if (workspace.name !== 'all') {
+        this.start(workspace);
+      } else {
+        workspace.datastores.map((datastore: IWorkspace) => this.start(datastore));
+      }
     }
   }
 
@@ -68,12 +69,14 @@ export class VectorsComponent implements OnInit {
     this.getWorkspaces();
   }
 
-  start(workspace) {
+  start(workspace: IWorkspace) {
+    console.log(`start START...${workspace.name}`);
     this.getVectors(workspace)
       .then(vectors => {
         if (vectors && vectors.length !== 0) {
-          // console.log(`ngOnInit vectors: ${JSON.stringify(vectors, null, 3)}`);
+          // console.log(`start vectors: ${JSON.stringify(vectors)}`);
           this.vectors = vectors.map(vector => {
+            console.log(`vector ${vector.name} has ${vector.features.length} features`);
             if (vector.features.length > 0) {
               vector = {
                 ...vector,
@@ -103,21 +106,32 @@ export class VectorsComponent implements OnInit {
       });
   }
 
-  getWorkspaces(): Promise<string[]> {
-    return this.geoserverService.getWorkspaces().then(workspaces => {
+  getWorkspaces() {
+    const getWorkspaces: any = this.geoserverService.getWorkspaces();
+    getWorkspaces.then((workspaces: IWorkspace[]) => {
       this.workspaces = workspaces.filter(workspace => workspace);
+      // const allDatastores: any = this.workspaces.map(({ datastores }): IHref[] => datastores);
+      // const datastores: IHref[] = allDatastores.flat(1);
+      const allWorkspaces = {
+        name: 'all',
+        datastores: this.workspaces
+      };
+      this.workspaces.push(allWorkspaces);
     });
   }
 
-  getVectors(workspace: string): Promise<any> {
+  getVectors(workspace: IWorkspace): Promise<any> {
     return this.geoserverService.getVectors(workspace)
       .then(vectors => {
         if (vectors.length > 0) {
+          if (isArray(vectors[0])) {
+            vectors = vectors.flat(1);
+          }
           vectors = vectors.filter(vector => (vector !== null) && (vector !== undefined));
-          console.log(`workspace ${workspace} got ${vectors.length} vectors`);
+          console.log(`workspace ${workspace.name} got ${vectors.length} vectors`);
           return vectors;
         } else {
-          console.log(`workspace ${workspace} has no Layers!`);
+          console.log(`workspace ${workspace.name} has no Layers!`);
           return [];
         }
       });
@@ -185,7 +199,7 @@ export class VectorsComponent implements OnInit {
           coords = this.getLonLatCoords(coords, proj);
           coords = coords.flat(1);
         } else {
-          coords = (geomType === 'LineString') ? coords.flat(2) : coords.flat(3);
+          coords = (geomType === 'Polygon') ? coords.flat(2) : coords.flat(3);
         }
         parsedFeature.entity = this.parsePolygon(coords);
         vector.polygons.push(parsedFeature);
