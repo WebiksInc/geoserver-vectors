@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import axios, { AxiosResponse } from 'axios';
 import { all, Promise, resolve } from 'q';
-import { IVector, IWorkspace } from './types';
+import { IHref, IVector, IWorkspace } from './types';
 import config from './config';
 
 
@@ -47,7 +47,7 @@ export class GeoserverService {
     // 3. get each layer details (id, srs, nativeCRS)
     // 4. get each layer features (WFS)
 
-    const datastores = workspace.datastores;
+    const datastores: IHref[] = workspace.datastores;
     const promise = datastores.map(({ href }) => this.getFeatureTypes(workspace.name, href));
     return all(promise);
   }

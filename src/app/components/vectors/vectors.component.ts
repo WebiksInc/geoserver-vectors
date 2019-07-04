@@ -56,12 +56,8 @@ export class VectorsComponent implements OnInit {
       return false;
     } else {
       this.selecedWorkspace = this.registrationForm.value.workspaceName;
-      const workspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
-      if (workspace.name !== 'all') {
-        this.start(workspace);
-      } else {
-        workspace.datastores.map((datastore: IWorkspace) => this.start(datastore));
-      }
+      const workspace: IWorkspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
+      this.start(workspace);
     }
   }
 
@@ -110,13 +106,6 @@ export class VectorsComponent implements OnInit {
     const getWorkspaces: any = this.geoserverService.getWorkspaces();
     getWorkspaces.then((workspaces: IWorkspace[]) => {
       this.workspaces = workspaces.filter(workspace => workspace);
-      // const allDatastores: any = this.workspaces.map(({ datastores }): IHref[] => datastores);
-      // const datastores: IHref[] = allDatastores.flat(1);
-      const allWorkspaces = {
-        name: 'all',
-        datastores: this.workspaces
-      };
-      this.workspaces.push(allWorkspaces);
     });
   }
 

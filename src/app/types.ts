@@ -2,7 +2,7 @@ import { AcNotification } from 'angular-cesium';
 
 export interface IWorkspace {
   name: string;
-  datastores: IHref[] | IWorkspace[] ;
+  datastores: IHref[];
 }
 
 export interface IVector {
