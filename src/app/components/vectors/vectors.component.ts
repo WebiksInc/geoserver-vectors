@@ -266,10 +266,6 @@ export class VectorsComponent implements OnInit {
     );
   }
 
-  private getFeatureSrs(crs: string) {
-    return crs.substring(crs.lastIndexOf(':'));
-  }
-
   private getLonLatCoords(coords: IPoint[], proj: string): IPoint[] {
     return coords.map(point => this.getLonLatPoint(point, proj));
   }
