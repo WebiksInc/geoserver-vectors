@@ -12,5 +12,6 @@ export default config = {
     start: '/wfs?service=WFS&version=2.0.0&request=GetFeature&typeName=',
     middle: '&srsName=',
     end: '&count=50000&outputFormat=application/json'
-  }
+  },
+  lonLatProj: 'EPSG:4326'
 };
