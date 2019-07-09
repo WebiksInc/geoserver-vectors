@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import axios, { AxiosResponse } from 'axios';
 import { all, Promise, resolve } from 'q';
-import { IHref, IVector, IWorkspace } from './types';
+import { IHref, IWorkspace } from './types';
 import config from './config';
 
 
@@ -33,30 +33,33 @@ export class GeoserverService {
     console.log(`start getWorkspaces...${url}`);
     return axios.get(url, this.headers)
       .then((results): any => {
-        const workspaces: any = results.data.workspaces.workspace.map(({ name }: Promise<IWorkspace> | any) => this.getWorkspacesWithVectors(name));
+        const workspaces: any = results.data.workspaces.workspace.map(({name}: Promise<IWorkspace> | any) => this.getWorkspacesWithVectors(name));
         return all(workspaces);
       })
       .catch(error => this.handleError('getWorkspaces', []));
   }
 
+  // get vectors without the features
   getVectors(workspace: IWorkspace): any {
     console.log('start getVectors...', workspace.name);
 
     // 1. all the workspaces already has the dataStores
     // 2. get featureTypes for each dataStore (the vector's layers of the store)
     // 3. get each layer details (id, srs, nativeCRS)
-    // 4. get each layer features (WFS)
 
     const datastores: IHref[] = workspace.datastores;
-    const promise = datastores.map(({ href }) => this.getFeatureTypes(workspace.name, href));
+    const promise = datastores.map(({href}) => this.getFeatureTypes(workspace.name, href));
     return all(promise);
   }
 
-  private getWorkspacesWithVectors(workspaceName: string): any {
-    return this.getDatastores(workspaceName);
+  getWfsFeature(id: string, srs: string): any {
+    const url = `${config.baseUrl}${config.wfs.start}${id}${config.wfs.middle}${srs}${config.wfs.end}`;
+    return axios.get(url, this.headers)
+      .then((geojson: AxiosResponse<any>): any => geojson.data.features)
+      .catch(error => this.handleError('getWfsFeature', []));
   }
 
-  private getDatastores(workspace: string): any {
+  private getWorkspacesWithVectors(workspace: string): any {
     const url = `${this.restUrl}/workspaces/${workspace}/datastores.json`;
     return axios.get(url, this.headers)
       .then((results: AxiosResponse<any>): any => {
@@ -65,11 +68,12 @@ export class GeoserverService {
           datastores = datastores.dataStore;
           return {
             name: workspace,
-            datastores
+            datastores,
+            vectors: []
           };
         }
       })
-      .catch(error => this.handleError('getDatastores'));
+      .catch(error => this.handleError('getWorkspacesWithVectors'));
   }
 
   private getFeatureTypes(workspace: string, url: string): any {
@@ -78,11 +82,11 @@ export class GeoserverService {
         const datastore = results.data.dataStore.featureTypes;
         const feautreTypes: any = this.getFeatureType(datastore);
         return feautreTypes.then(vectors => {
-          vectors = vectors.map(vector => this.getVector(workspace, vector.href));
-          return all(vectors);
+          const promise = vectors.map(vector => this.getVector(workspace, vector.href));
+          return all(promise);
         });
       })
-      .catch(error => this.handleError('getDatastores', []));
+      .catch(error => this.handleError('getFeatureTypes', []));
   }
 
   private getFeatureType(url: string): any {
@@ -91,36 +95,32 @@ export class GeoserverService {
       .catch(error => this.handleError('getLayersByType', []));
   }
 
+  // get vector data without the features (WFS)
   private getVector(workspace: string, url: string): any {
 
-    // 1. get vector's details (id, srs, nativeCRS)
-    // 2. get vector's features (WFS)
+    // get vector's details (id, srs, nativeCRS)
 
     return axios.get(url, this.headers)
       .then((results: AxiosResponse<any>): any => {
         const vector = results.data.featureType;
         const id = `${workspace}:${vector.name}`;
-        // get the vector's features by WFS requset
-        const vectorFeatures: any = this.getWfsFeature(id, vector.srs);
-        return vectorFeatures.then((features): IVector =>
-          ({
-            id,
-            workspace,
-            name: vector.name,
-            srs: vector.srs,
-            nativeCrs: vector.nativeCRS['$'],
-            features
-          })
-        );
+        const srs = vector.srs;
+        const nativeCrs = vector.srs === config.lonLatProj ? vector.nativeCRS : vector.nativeCRS['$'];
+        console.log(`getVector nativeCrs: ${JSON.stringify(nativeCrs)}`);
+        return {
+          id,
+          workspace,
+          name: vector.name,
+          srs,
+          nativeCrs,
+          show: false,
+          features: [],
+          polygons: [],
+          lineStrings: [],
+          points: []
+        };
       })
       .catch(error => this.handleError('getLayersByType'));
-  }
-
-  private getWfsFeature(id: string, srs: string): any {
-    const url = `${config.baseUrl}${config.wfs.start}${id}${config.wfs.middle}${srs}${config.wfs.end}`;
-    return axios.get(url, this.headers)
-      .then((geojson: AxiosResponse<any>): any => geojson.data.features)
-      .catch(error => this.handleError('getWfsFeature', []));
   }
 
   private handleError<T>(operation = 'operation', result?: T) {

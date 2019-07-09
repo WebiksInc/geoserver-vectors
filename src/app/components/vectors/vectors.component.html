@@ -1,25 +1,19 @@
 <div>
-  <form [formGroup]="registrationForm" (ngSubmit)="onSubmit()">
-    <select class="custom-select" (change)="changeWorkspace($event)" formControlName="workspaceName">
-      <option value="">Choose your workspace</option>
-      <option *ngFor="let workspace of workspaces" [ngValue]="workspace.name">{{workspace.name}}</option>
+  <p>Choose your Workspace</p>
+    <select class="custom-select" [formControl]="workspaceControl" (change)="changeWorkspace()">
+      <option *ngFor="let workspace of workspaces" [value]="workspace.name">{{ workspace.name }}</option>
     </select>
 
-    <!-- error block -->
-    <div class="invalid-feedback" *ngIf="isSubmitted && workspaceName.errors?.required">
-      <sup>*</sup>Please enter workspace name
-    </div>
-
-    <!--<button type="submit">apply</button>-->
-  </form>
+    <button (click)="start()">apply</button>
 </div>
 
 <div>
-  <ul class="vectors">
+  <ul class="vectors" *ngIf="vectors.length > 0">
     <li *ngFor="let vector of vectors">
-      <button [title]="vector.id" (click)="showVector(vector)"> {{ vector.id }} </button>
-      <feature-layer *ngIf="vector.show" [features]="vector.features" [polygons]="vector.polygons" [lineStrings]="vector.lineStrings" [points]="vector.points">
+      <input type="checkbox" name="showVectors" [(ngModel)]="vector.show" (change)="showVector(vector, index)"> {{ vector.id }}
+      <feature-layer *ngIf="vector.show && vector.features.length > 0" [features]="vector.features" [polygons]="vector.polygons" [lineStrings]="vector.lineStrings" [points]="vector.points">
       </feature-layer>
+    </li>
   </ul>
 </div>
 

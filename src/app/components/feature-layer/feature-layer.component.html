@@ -1,71 +1,37 @@
-<!--<ac-layer acFor="let feature of features$" [context]="this" [show]="true">-->
-  <ac-layer  acFor="let polygon of polygons$" [context]="this" [show]="true">
-    <ac-polygon-desc props="{
-        hierarchy: polygon.hierarchy,
-        material: polygon.material,
-        height: polygon.height,
-        outline: polygon.outline,
-        outlineColor: polygon.outlineColor,
-        show: polygon.show
-    }">
-    </ac-polygon-desc>
-  </ac-layer>
-  <ac-layer  acFor="let lineString of lineStrings$" [context]="this" [show]="true">
-    <ac-polyline-desc props="{
-        positions: lineString.positions,
-        material: lineString.material,
-        width: lineString.width,
-        clampToGround: lineString.clampToGround,
-        zIndex: lineString.zIndex,
-        show: lineString.show
-        }">
-    </ac-polyline-desc>
-  </ac-layer>
-  <ac-layer  acFor="let point of points$" [context]="this" [show]="true">
-    <ac-point-desc props="{
-        position: point.position,
-        width: point.width,
-        color: point.color,
-        pixelSize: point.pixelSize,
-        outline: point.outline,
-        outlineColor: point.outlineColor,
-        outlineWidth: point.outlineWidth,
-        scaleByDistance: point.scaleByDistance,
-        show: point.show
-        }">
-    </ac-point-desc>
-  </ac-layer>
-
-  <!--<ac-polygon-desc props="{-->
-        <!--hierarchy: feature.hierarchy,-->
-        <!--material: feature.material,-->
-        <!--height: feature.height,-->
-        <!--outline: feature.outline,-->
-        <!--outlineColor: feature.outlineColor,-->
-        <!--show: feature.show-->
-    <!--}">-->
-  <!--</ac-polygon-desc>-->
-  <!--<ac-polyline-desc *ngIf="feature.positions" props="{-->
-        <!--positions: feature.positions,-->
-        <!--material: feature.material,-->
-        <!--width: feature.width,-->
-        <!--clampToGround: feature.clampToGround,-->
-        <!--zIndex: feature.zIndex,-->
-        <!--show: feature.show-->
-    <!--}">-->
-  <!--</ac-polyline-desc>-->
-  <!--<ac-point-desc *ngIf="feature.pixelSize" props="{-->
-        <!--position: feature.position,-->
-        <!--width: feature.width,-->
-        <!--color: feature.color,-->
-        <!--pixelSize: feature.pixelSize,-->
-        <!--outline: feature.outline,-->
-        <!--outlineColor: feature.outlineColor,-->
-        <!--outlineWidth: feature.outlineWidth,-->
-        <!--scaleByDistance: feature.scaleByDistance,-->
-        <!--show: feature.show-->
-    <!--}">-->
-  <!--</ac-point-desc>-->
-<!--</ac-layer>-->
-
+<ac-layer  acFor="let polygon of polygons$" [context]="this" [show]="true">
+  <ac-polygon-desc props="{
+      hierarchy: polygon.hierarchy,
+      material: polygon.material,
+      height: polygon.height,
+      outline: polygon.outline,
+      outlineColor: polygon.outlineColor,
+      show: polygon.show
+  }">
+  </ac-polygon-desc>
+</ac-layer>
+<ac-layer  acFor="let lineString of lineStrings$" [context]="this" [show]="true">
+  <ac-polyline-desc props="{
+      positions: lineString.positions,
+      material: lineString.material,
+      width: lineString.width,
+      clampToGround: lineString.clampToGround,
+      zIndex: lineString.zIndex,
+      show: lineString.show
+      }">
+  </ac-polyline-desc>
+</ac-layer>
+<ac-layer  acFor="let point of points$" [context]="this" [show]="true">
+  <ac-point-desc props="{
+      position: point.position,
+      width: point.width,
+      color: point.color,
+      pixelSize: point.pixelSize,
+      outline: point.outline,
+      outlineColor: point.outlineColor,
+      outlineWidth: point.outlineWidth,
+      scaleByDistance: point.scaleByDistance,
+      show: point.show
+      }">
+  </ac-point-desc>
+</ac-layer>
 

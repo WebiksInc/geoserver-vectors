@@ -3,19 +3,20 @@ import { AcNotification } from 'angular-cesium';
 export interface IWorkspace {
   name: string;
   datastores: IHref[];
+  vectors?: IVector[];
 }
 
 export interface IVector {
+  workspace: string;
   id: string;
   name: string;
-  workspace: string;
   srs: string;
   nativeCrs: string;
-  show?: boolean;
+  show: boolean;
   features: AcNotification[] | any;
-  polygons?: AcNotification[] | any;
-  lineStrings?: AcNotification[] | any;
-  points?: AcNotification[] | any;
+  polygons: AcNotification[] | any;
+  lineStrings: AcNotification[] | any;
+  points: AcNotification[] | any;
 }
 
 export interface IHref {
