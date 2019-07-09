@@ -1,20 +1,15 @@
 <div>
-  <p>Choose your Workspace</p>
-    <select class="custom-select" [formControl]="workspaceControl" (change)="changeWorkspace()">
-      <option *ngFor="let workspace of workspaces" [value]="workspace.name">{{ workspace.name }}</option>
-    </select>
-
-    <button (click)="start()">apply</button>
-</div>
-
-<div>
-  <ul class="vectors" *ngIf="vectors.length > 0">
+  <ul class="vectors" >
     <li *ngFor="let vector of vectors">
-      <input type="checkbox" name="showVectors" [(ngModel)]="vector.show" (change)="showVector(vector, index)"> {{ vector.id }}
+      <input type="checkbox" [(ngModel)]="vector.show" (change)="showVector(vector, index, true)"> {{ vector.id }}
       <feature-layer *ngIf="vector.show && vector.features.length > 0" [features]="vector.features" [polygons]="vector.polygons" [lineStrings]="vector.lineStrings" [points]="vector.points">
       </feature-layer>
     </li>
   </ul>
+
+  <button (click)="displayLayers()">
+    {{ title }} all vectors
+  </button>
 </div>
 
 

@@ -1,10 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { Validators, FormControl } from "@angular/forms";
+import { Component, Input, OnInit } from '@angular/core';
 import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
 import proj4 from 'proj4';
 
-import { IVector, IWorkspace, IPoint} from '../../types';
+import { IPoint, IVector } from '../../types';
 import { GeoserverService } from '../../geoserver.service';
 import { isArray } from 'util';
 import config from '../../config';
@@ -17,71 +16,19 @@ import config from '../../config';
 
 export class VectorsComponent implements OnInit {
 
-  workspaceControl = new FormControl('', [Validators.required]);
-  workspaces: IWorkspace[];
-  selecedWorkspace: string;
-  workspace: IWorkspace;
-  vectors: IVector[] = [];
+  @Input()
+  vectors: IVector[];
+
+  title = 'show';
+  showAllVectors = true;
 
   constructor(private geoserverService: GeoserverService) {
   }
 
-  changeWorkspace() {
-    this.selecedWorkspace = this.workspaceControl.value;
-    console.log(`changeWorkspace selecedWorkspace: ${this.selecedWorkspace}`);
-    this.workspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
-    this.start();
-  }
-
   ngOnInit() {
-    this.getWorkspaces();
   }
 
-  start() {
-    console.log(`start START...${this.workspace.name}`);
-    if (this.workspace.vectors.length === 0) {
-      this.getVectors()
-        .then(vectors => {
-          if (vectors && vectors.length !== 0) {
-            this.vectors = vectors;
-            this.workspace.vectors = this.vectors;
-            console.log(`start vectors: ${JSON.stringify(this.workspace.vectors, null, 3)}`);
-          } else {
-            console.log('No Vector was found!');
-          }
-        });
-    } else {
-      this.vectors = this.workspace.vectors;
-      console.log(`workspace ${this.workspace.name} already has been checked for vectors!`);
-    }
-  }
-
-  getWorkspaces() {
-    const getWorkspaces: any = this.geoserverService.getWorkspaces();
-    getWorkspaces.then((workspaces: IWorkspace[]) => {
-      this.workspaces = workspaces.filter(workspace => workspace);
-    });
-  }
-
-  getVectors(): Promise<any> {
-    return this.geoserverService.getVectors(this.workspace)
-      .then(vectors => {
-        if (vectors.length > 0) {
-          if (isArray(vectors[0])) {
-            vectors = vectors.flat(1);
-          }
-          vectors = vectors.filter(vector => (vector !== null) && (vector !== undefined));
-          console.log(`workspace ${this.workspace.name} got ${vectors.length} vectors`);
-        } else {
-          console.log(`workspace ${this.workspace.name} has no Layers!`);
-          vectors = [];
-        }
-        this.workspace.vectors = vectors;
-        return vectors;
-      });
-  }
-
-  showVector(vector: IVector, index: number) {
+  showVector(vector: IVector, index: number, statusCheck: boolean) {
     console.log(`showVector vector show = ${vector.show}`);
     if (vector.features.length === 0) {
       if (vector.show) {
@@ -96,15 +43,46 @@ export class VectorsComponent implements OnInit {
             vector.features = vector.features.map((feature): AcNotification => this.featureToAcNotification(vector, feature));
             vector = this.parseVector(vector);
             this.vectors[index] = vector;
-            this.workspace.vectors = this.vectors;
           }
         });
       } else {
         console.log(`vector ${vector.name} has no features!`);
       }
     } else {
-      // vector.show = !vector.show;
       console.log(`showVector change show: ${vector.show}`);
+    }
+    if (statusCheck) {
+      this.checkShowAllVectorsStatus();
+    }
+  }
+
+  displayLayers() {
+    console.log(`displayLayers showAllVectors: ${this.showAllVectors}`);
+    if (this.showAllVectors) {
+      this.title = 'hide';
+      this.vectors.map((vector: IVector, index: number) => {
+        vector.show = true;
+        const statusCheck = false;
+        this.showVector(vector, index, statusCheck);
+      });
+    } else {
+      this.title = 'show';
+      this.vectors.map((vector: IVector) => {
+        vector.show = false;
+      });
+    }
+    this.showAllVectors = !this.showAllVectors;
+  }
+
+  private checkShowAllVectorsStatus() {
+    let diffStatus: IVector[] = [];
+    const status = this.vectors[0].show;
+    console.log(`checkShowAllVectorsStatus status = ${status}`);
+    diffStatus = this.vectors.filter(vector => vector.show !== status);
+    console.log(`checkShowAllVectorsStatus diffStatus length = ${diffStatus.length}`);
+    if (diffStatus.length === 0) {
+      this.showAllVectors = status;
+      this.displayLayers();
     }
   }
 

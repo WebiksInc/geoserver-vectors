@@ -1,0 +1,9 @@
+<div>
+  <p>Choose your Workspace</p>
+  <select class="custom-select" [formControl]="workspaceControl" (change)="changeWorkspace()">
+    <option *ngFor="let workspace of workspaces" [value]="workspace.name">{{ workspace.name }}</option>
+  </select>
+
+  <button (click)="start()">apply</button>
+  <vectors *ngIf="workspace" [vectors]="workspace.vectors"></vectors>
+</div>

@@ -8,11 +8,6 @@ import { MapsManagerService, ViewerConfiguration } from 'angular-cesium';
 })
 export class AppComponent implements AfterViewInit {
 
-  showVectors = true;
-
-  @Input()
-  title = 'hide';
-
   constructor(public mapManager: MapsManagerService, private viewerConfiguration: ViewerConfiguration) {
     this.viewerConfiguration.viewerOptions = {
       selectionIndicator: false,
@@ -29,11 +24,6 @@ export class AppComponent implements AfterViewInit {
       navigationInstructionsInitiallyVisible: false,
       terrainProviderViewModels: []
     };
-  }
-
-  displayLayers() {
-    this.title = this.showVectors ? 'show' : 'hide';
-    this.showVectors = !this.showVectors;
   }
 
   ngAfterViewInit() {
