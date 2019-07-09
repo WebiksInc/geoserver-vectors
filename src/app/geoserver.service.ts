@@ -113,7 +113,7 @@ export class GeoserverService {
           name: vector.name,
           srs,
           nativeCrs,
-          show: true,
+          show: false,
           features: [],
           polygons: [],
           lineStrings: [],

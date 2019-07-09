@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, Validators } from "@angular/forms";
+import { Validators, FormControl } from "@angular/forms";
 import { AcEntity, AcNotification, ActionType } from 'angular-cesium';
 import { Promise } from 'q';
 import proj4 from 'proj4';
@@ -16,46 +16,21 @@ import config from '../../config';
 })
 
 export class VectorsComponent implements OnInit {
-  isSubmitted = false;
 
+  workspaceControl = new FormControl('', [Validators.required]);
   workspaces: IWorkspace[];
   selecedWorkspace: string;
   workspace: IWorkspace;
   vectors: IVector[] = [];
 
-  constructor(private geoserverService: GeoserverService,
-              public fb: FormBuilder) {
+  constructor(private geoserverService: GeoserverService) {
   }
 
-  // Form
-  registrationForm = this.fb.group({
-    workspaceName: ['', [Validators.required]]
-  });
-
-  // Choose city using select dropdown
-  changeWorkspace(e) {
-    this.workspaceName.setValue(e.target.value, {
-      onlySelf: true
-    });
-    this.onSubmit();
-  }
-
-  // Getter method to access form controls
-  get workspaceName() {
-    return this.registrationForm.get('workspaceName');
-  }
-
-  onSubmit() {
-    this.isSubmitted = true;
-    if (!this.registrationForm.valid) {
-      return false;
-    } else {
-      this.selecedWorkspace = this.registrationForm.value.workspaceName;
-      this.workspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
-      if (this.workspace.vectors.length === 0) {
-        this.start();
-      }
-    }
+  changeWorkspace() {
+    this.selecedWorkspace = this.workspaceControl.value;
+    console.log(`changeWorkspace selecedWorkspace: ${this.selecedWorkspace}`);
+    this.workspace = this.workspaces.find(({ name }) => name === this.selecedWorkspace);
+    this.start();
   }
 
   ngOnInit() {
@@ -107,6 +82,7 @@ export class VectorsComponent implements OnInit {
   }
 
   showVector(vector: IVector, index: number) {
+    console.log(`showVector vector show = ${vector.show}`);
     if (vector.features.length === 0) {
       if (vector.show) {
         // get the vector's features and display it on the map
@@ -127,7 +103,7 @@ export class VectorsComponent implements OnInit {
         console.log(`vector ${vector.name} has no features!`);
       }
     } else {
-      vector.show = !vector.show;
+      // vector.show = !vector.show;
       console.log(`showVector change show: ${vector.show}`);
     }
   }
