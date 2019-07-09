@@ -20,7 +20,7 @@ export class VectorsComponent implements OnInit {
   vectors: IVector[];
 
   title = 'show';
-  showAllVectors = false;
+  showAllVectors = true;
 
   constructor(private geoserverService: GeoserverService) {
   }
@@ -28,7 +28,7 @@ export class VectorsComponent implements OnInit {
   ngOnInit() {
   }
 
-  showVector(vector: IVector, index: number) {
+  showVector(vector: IVector, index: number, statusCheck: boolean) {
     console.log(`showVector vector show = ${vector.show}`);
     if (vector.features.length === 0) {
       if (vector.show) {
@@ -51,22 +51,38 @@ export class VectorsComponent implements OnInit {
     } else {
       console.log(`showVector change show: ${vector.show}`);
     }
+    if (statusCheck) {
+      this.checkShowAllVectorsStatus();
+    }
   }
 
   displayLayers() {
-    this.showAllVectors = !this.showAllVectors;
     console.log(`displayLayers showAllVectors: ${this.showAllVectors}`);
     if (this.showAllVectors) {
       this.title = 'hide';
       this.vectors.map((vector: IVector, index: number) => {
         vector.show = true;
-        this.showVector(vector, index);
+        const statusCheck = false;
+        this.showVector(vector, index, statusCheck);
       });
     } else {
       this.title = 'show';
       this.vectors.map((vector: IVector) => {
         vector.show = false;
       });
+    }
+    this.showAllVectors = !this.showAllVectors;
+  }
+
+  private checkShowAllVectorsStatus() {
+    let diffStatus: IVector[] = [];
+    const status = this.vectors[0].show;
+    console.log(`checkShowAllVectorsStatus status = ${status}`);
+    diffStatus = this.vectors.filter(vector => vector.show !== status);
+    console.log(`checkShowAllVectorsStatus diffStatus length = ${diffStatus.length}`);
+    if (diffStatus.length === 0) {
+      this.showAllVectors = status;
+      this.displayLayers();
     }
   }
 
