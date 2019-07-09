@@ -8,12 +8,14 @@ import { VectorsComponent } from './components/vectors/vectors.component';
 import { FeatureLayerComponent } from './components/feature-layer/feature-layer.component';
 import { GeoserverService } from './geoserver.service';
 import { HttpClientModule } from '@angular/common/http';
+import { WorkspacesComponent } from './components/workspaces/workspaces.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     VectorsComponent,
-    FeatureLayerComponent
+    FeatureLayerComponent,
+    WorkspacesComponent
   ],
   imports: [
     HttpClientModule,
