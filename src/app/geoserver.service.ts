@@ -106,7 +106,7 @@ export class GeoserverService {
         const id = `${workspace}:${vector.name}`;
         const srs = vector.srs;
         const nativeCrs = vector.srs === config.lonLatProj ? vector.nativeCRS : vector.nativeCRS['$'];
-        console.log(`getVector nativeCrs: ${JSON.stringify(nativeCrs)}`);
+        // console.log(`getVector nativeCrs: ${JSON.stringify(nativeCrs)}`);
         return {
           id,
           workspace,

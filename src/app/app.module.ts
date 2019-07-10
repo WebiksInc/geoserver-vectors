@@ -1,14 +1,16 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { AngularCesiumModule, ViewerConfiguration } from 'angular-cesium';
 
 import { AppComponent } from './app.component';
-import { AngularCesiumModule, ViewerConfiguration } from 'angular-cesium';
 import { VectorsComponent } from './components/vectors/vectors.component';
 import { FeatureLayerComponent } from './components/feature-layer/feature-layer.component';
 import { GeoserverService } from './geoserver.service';
-import { HttpClientModule } from '@angular/common/http';
 import { WorkspacesComponent } from './components/workspaces/workspaces.component';
+
+import { AccordionModule } from 'primeng/accordion';
 
 @NgModule({
   declarations: [
@@ -22,7 +24,8 @@ import { WorkspacesComponent } from './components/workspaces/workspaces.componen
     BrowserModule,
     FormsModule,
     ReactiveFormsModule,
-    AngularCesiumModule.forRoot()
+    AngularCesiumModule.forRoot(),
+    AccordionModule
   ],
   providers: [ViewerConfiguration, GeoserverService],
   bootstrap: [AppComponent]

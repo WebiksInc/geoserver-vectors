@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, ViewChild } from '@angular/core';
-import { AcLayerComponent, AcNotification } from 'angular-cesium';
+import { AcLayerComponent, AcNotification, MapLayerProviderOptions } from 'angular-cesium';
 import { from as observableFrom, Observable } from 'rxjs';
 
 @Component({
@@ -32,6 +32,8 @@ export class FeatureLayerComponent implements OnInit {
 
   constructor() {
   }
+
+  MapLayerProviderOptions : MapLayerProviderOptions;
 
   ngOnInit() {
     this.features$ = observableFrom(this.features);

@@ -1,5 +1,5 @@
 <div>
-  <ul class="vectors" >
+  <ul class="vectors">
     <li *ngFor="let vector of vectors">
       <input type="checkbox" [(ngModel)]="vector.show" (change)="showVector(vector, index, true)"> {{ vector.id }}
       <feature-layer *ngIf="vector.show && vector.features.length > 0" [features]="vector.features" [polygons]="vector.polygons" [lineStrings]="vector.lineStrings" [points]="vector.points">
